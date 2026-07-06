@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>看看谁是东</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="main-title">看看谁是东</h1>
+        
+        <div class="search-section">
+            <input 
+                type="text" 
+                id="searchInput" 
+                class="search-box" 
+                placeholder="输入球员名字搜索..."
+            >
+        </div>
+
+        <div class="main-content">
+            <div class="players-list-section">
+                <h2>球员列表</h2>
+                <div id="playersList" class="players-list">
+                    <!-- Players will be populated here -->
+                </div>
+            </div>
+
+            <div class="player-details-section">
+                <h2>球员详情</h2>
+                <div id="playerDetails" class="player-details">
+                    <p class="placeholder-text">请选择一名球员查看详细信息</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Initialize the application when all scripts are loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

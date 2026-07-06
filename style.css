@@ -1,0 +1,255 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    padding: 40px;
+}
+
+.main-title {
+    font-size: 3.5em;
+    text-align: center;
+    color: #667eea;
+    margin-bottom: 40px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-section {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.search-box {
+    width: 100%;
+    max-width: 500px;
+    padding: 15px 20px;
+    font-size: 1.1em;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.search-box:focus {
+    border-color: #764ba2;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-box::placeholder {
+    color: #999;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.players-list-section,
+.player-details-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 25px;
+    border: 1px solid #e0e0e0;
+}
+
+.players-list-section h2,
+.player-details-section h2 {
+    font-size: 1.5em;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #667eea;
+}
+
+.players-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.player-item {
+    padding: 12px 15px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.player-item:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+    transform: translateX(5px);
+}
+
+.player-item.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+    font-weight: 600;
+}
+
+.player-details {
+    min-height: 400px;
+}
+
+.placeholder-text {
+    text-align: center;
+    color: #999;
+    padding: 40px 20px;
+    font-size: 1.1em;
+}
+
+.player-info {
+    margin-bottom: 25px;
+}
+
+.player-name {
+    font-size: 2em;
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.player-nationality {
+    font-size: 1.1em;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+.statistics {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-left: 4px solid #667eea;
+}
+
+.statistics h3 {
+    font-size: 1.3em;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    font-weight: 600;
+    color: #667eea;
+}
+
+.stat-value {
+    font-weight: 700;
+    color: #333;
+    font-size: 1.2em;
+}
+
+.world-cup-history {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    border-left: 4px solid #764ba2;
+}
+
+.world-cup-history h3 {
+    font-size: 1.3em;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.tournament-record {
+    background: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    border-left: 3px solid #764ba2;
+}
+
+.tournament-year {
+    font-weight: 700;
+    color: #764ba2;
+    font-size: 1.1em;
+    margin-bottom: 8px;
+}
+
+.tournament-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    font-size: 0.95em;
+}
+
+.tournament-stat {
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.tournament-stat-label {
+    color: #999;
+    font-size: 0.85em;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.tournament-stat-value {
+    font-weight: 700;
+    color: #667eea;
+    font-size: 1.2em;
+}
+
+.no-records {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+
+    .main-title {
+        font-size: 2.5em;
+    }
+
+    .container {
+        padding: 20px;
+    }
+
+    .tournament-stats {
+        grid-template-columns: 1fr;
+    }
+}
