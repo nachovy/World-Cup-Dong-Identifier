@@ -10,10 +10,60 @@ from urllib.error import HTTPError
 import json
 import sys
 import re
+import unicodedata
 from pathlib import Path
 
 
 WORLD_CUP_MORE_DIR = Path('/Users/miguel/worldcup/more')
+
+
+def _normalize_team_key(value):
+    if not value:
+        return ''
+    normalized = unicodedata.normalize('NFD', value)
+    normalized = ''.join(ch for ch in normalized if unicodedata.category(ch) != 'Mn')
+    normalized = normalized.lower().replace('&', ' and ')
+    normalized = re.sub(r'[^a-z0-9]+', '', normalized)
+    return normalized
+
+
+def _canonicalize_team_name(raw_name, known_teams):
+    if not raw_name:
+        return raw_name
+    key = _normalize_team_key(raw_name)
+    by_key = {_normalize_team_key(team): team for team in known_teams}
+    return by_key.get(key, raw_name)
+
+
+def _extract_squad_players_by_team(squad_text):
+    teams = {}
+    team_header_pattern = re.compile(r"^==\s*(.+?)\s+#\s+\d+\s+Players\s*$", re.MULTILINE)
+    player_pattern = re.compile(r"^\s*(\d+|-)\s*,\s*([^,\n]+?)\s*,\s*(GK|DF|MF|FW|MG)\b", re.MULTILINE)
+
+    team_headers = list(team_header_pattern.finditer(squad_text))
+    for index, header in enumerate(team_headers):
+        team_name = header.group(1).strip()
+        start = header.end()
+        end = team_headers[index + 1].start() if index + 1 < len(team_headers) else len(squad_text)
+        block = squad_text[start:end]
+
+        players = []
+        for player_match in player_pattern.finditer(block):
+            shirt_number = player_match.group(1)
+            name = _sanitize_name(player_match.group(2))
+            role = player_match.group(3)
+
+            if shirt_number == '-' or role == 'MG':
+                continue
+            if not name:
+                continue
+
+            players.append(name)
+
+        # Preserve order while deduplicating possible wrapped duplicates.
+        teams[team_name] = list(dict.fromkeys(players))
+
+    return teams
 
 
 def _sanitize_name(value):
@@ -181,6 +231,7 @@ def _get_or_create_tournament(player, year):
 
 def parse_worldcup_full_files():
     player_map = {}
+    teams_by_year = {}
 
     full_files = sorted(WORLD_CUP_MORE_DIR.glob('*_full.txt'))
     for file_path in full_files:
@@ -202,6 +253,7 @@ def parse_worldcup_full_files():
         for match in match_pattern.finditer(text):
             team1 = match.group(1).strip()
             team2 = match.group(2).strip()
+            teams_by_year.setdefault(year, set()).update([team1, team2])
             match_body = match.group(3)
             scorers_text = ''
             details_block = match_body
@@ -292,6 +344,27 @@ def parse_worldcup_full_files():
                 tournament = _get_or_create_tournament(player, year)
                 tournament['goals'] += 1
                 tournament['goalRecords'].append(_build_goal_record(team1, team2, event.get('minute')))
+
+    # Merge official squad lists so non-appearing squad players are still searchable.
+    squad_files = sorted(WORLD_CUP_MORE_DIR.glob('*_squads.txt'))
+    for file_path in squad_files:
+        year_match = re.match(r'^(\d{4})_squads\.txt$', file_path.name)
+        if not year_match:
+            continue
+
+        year = int(year_match.group(1))
+        if year == 2026:
+            continue
+
+        squads_text = file_path.read_text(encoding='utf-8', errors='ignore')
+        squads_by_team = _extract_squad_players_by_team(squads_text)
+        known_teams = teams_by_year.get(year, set())
+
+        for raw_team, squad_players in squads_by_team.items():
+            team = _canonicalize_team_name(raw_team, known_teams)
+            for player_name in squad_players:
+                player = _get_or_create_player(player_map, player_name, team)
+                _get_or_create_tournament(player, year)
 
     players = []
     for player in player_map.values():
