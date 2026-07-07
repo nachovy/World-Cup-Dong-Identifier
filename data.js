@@ -1,6 +1,15 @@
 // World Cup Players Database - loaded from real API
 let worldCupDatabase = [];
 
+function isLikelyCorruptedPlayerName(name) {
+    if (!name || typeof name !== 'string') {
+        return true;
+    }
+
+    // Reject lineup fragments accidentally parsed as names, e.g. "(71' Oscar ORTIZ".
+    return /\(\s*\d+(?:\+\d+)?'|\d+(?:\+\d+)?'\s+[A-Za-z]/.test(name);
+}
+
 // Fetch World Cup data from API
 async function loadWorldCupData() {
     try {
@@ -44,8 +53,9 @@ async function fetchFromRealAPI() {
             throw new Error('Invalid API response format: missing players array');
         }
 
-        // Exclude 2026 tournaments from current statistics.
+        // Exclude 2026 tournaments and malformed names from current statistics.
         worldCupDatabase = data.players
+            .filter(player => !isLikelyCorruptedPlayerName(player.name))
             .map(player => ({
                 ...player,
                 tournaments: (player.tournaments || []).filter(t => Number(t.year) !== 2026)

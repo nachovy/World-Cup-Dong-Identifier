@@ -18,6 +18,10 @@ WORLD_CUP_MORE_DIR = Path('/Users/miguel/worldcup/more')
 
 def _sanitize_name(value):
     value = re.sub(r'\[[^\]]*\]', '', value)
+    # Remove malformed substitution snippets that may miss a closing parenthesis,
+    # e.g. "Norberto ALONSO (71' Oscar ORTIZ".
+    value = re.sub(r"\s*\(\s*\d+(?:\+\d+)?'\s+[^\)]*$", '', value)
+    value = re.sub(r"\s*\d+(?:\+\d+)?'\s+[A-Za-zÀ-ÖØ-öø-ÿ'`\.\-\s]+$", '', value)
     value = value.strip()
     return value
 
