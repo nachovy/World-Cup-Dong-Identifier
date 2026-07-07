@@ -22,6 +22,8 @@ def _sanitize_name(value):
     # e.g. "Norberto ALONSO (71' Oscar ORTIZ".
     value = re.sub(r"\s*\(\s*\d+(?:\+\d+)?'\s+[^\)]*$", '', value)
     value = re.sub(r"\s*\d+(?:\+\d+)?'\s+[A-Za-zÀ-ÖØ-öø-ÿ'`\.\-\s]+$", '', value)
+    # Remove trailing orphaned parentheses/brackets from malformed lineup fragments
+    value = re.sub(r'[()\[\]]+\s*$', '', value)
     value = value.strip()
     return value
 

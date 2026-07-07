@@ -6,7 +6,14 @@ function isLikelyCorruptedPlayerName(name) {
         return true;
     }
 
-    // Reject lineup fragments accidentally parsed as names, e.g. "(71' Oscar ORTIZ".
+    // Reject lineup fragments and malformed names:
+    // 1. Substitution minute fragments: "(71' Oscar" or "71' Name"
+    // 2. Trailing special chars/parentheses: "Name )", "Name (", etc.
+    // 3. Leading/trailing whitespace after stripping
+    const trimmed = name.trim();
+    if (trimmed !== name || /[()\[\]]$/.test(trimmed)) {
+        return true;
+    }
     return /\(\s*\d+(?:\+\d+)?'|\d+(?:\+\d+)?'\s+[A-Za-z]/.test(name);
 }
 
