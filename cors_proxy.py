@@ -28,33 +28,73 @@ def _sanitize_name(value):
     return value
 
 
+def _prefer_appearance_detail(existing, incoming):
+    if not existing:
+        return incoming
+
+    priorities = {
+        '第': 3,        # e.g. "第45'分钟替补登场"
+        '被换下': 2,    # e.g. "首发，第72'分钟被换下"
+        '首发': 1
+    }
+
+    def score(value):
+        if value.startswith('第'):
+            return priorities['第']
+        if '被换下' in value:
+            return priorities['被换下']
+        if value.startswith('首发'):
+            return priorities['首发']
+        return 0
+
+    return incoming if score(incoming) > score(existing) else existing
+
+
 def _extract_participants(lineup_block):
     text = lineup_block.replace('\n', ' ')
     text = re.sub(r'\[[^\]]*\]', '', text)
+    text = text.replace(' - ', ', ')
+    text = text.replace('-', ',')
 
-    subs_in = re.findall(r"\((?:\d+(?:\+\d+)?'\s*)([^\)]+)\)", text)
-    sub_names = [_sanitize_name(name) for name in subs_in if _sanitize_name(name)]
+    participants = {}
 
-    starters_text = re.sub(r"\((?:\d+(?:\+\d+)?'[^\)]*)\)", '', text)
-    starters_text = starters_text.replace(' - ', ', ')
-    starters_text = starters_text.replace('-', ',')
+    for raw_token in text.split(','):
+        token = raw_token.strip()
+        if not token:
+            continue
 
-    starters = []
-    for token in starters_text.split(','):
+        sub_match = re.match(
+            r"^([A-Za-zÀ-ÖØ-öø-ÿ'`\.\-\s]+?)\s*\((\d+(?:\+\d+)?')\s*([^\)]+)\)$",
+            token
+        )
+        if sub_match:
+            starter_name = _sanitize_name(sub_match.group(1))
+            minute = sub_match.group(2)
+            sub_name = _sanitize_name(sub_match.group(3))
+
+            if starter_name and not any(ch.isdigit() for ch in starter_name):
+                detail = f"首发，第{minute}分钟被换下"
+                participants[starter_name] = _prefer_appearance_detail(participants.get(starter_name), detail)
+
+            if sub_name and not any(ch.isdigit() for ch in sub_name):
+                detail = f"第{minute}分钟替补登场"
+                participants[sub_name] = _prefer_appearance_detail(participants.get(sub_name), detail)
+            continue
+
         name = _sanitize_name(token)
         if not name:
             continue
         if any(ch.isdigit() for ch in name):
             continue
-        starters.append(name)
 
-    return set(starters + sub_names)
+        participants[name] = _prefer_appearance_detail(participants.get(name), '首发')
 
+    return participants
 
-def _extract_scorer_counts(scorer_text):
-    counts = {}
+def _extract_scorer_events(scorer_text):
+    events = []
     if not scorer_text:
-        return counts
+        return events
 
     cleaned = scorer_text.replace('\n', ' ')
     parts = [p.strip() for p in cleaned.split(',') if p.strip()]
@@ -65,18 +105,52 @@ def _extract_scorer_counts(scorer_text):
 
         # Some records omit repeated names and only list extra goal times,
         # e.g. "Lionel MESSI 23'(p), 108'".
-        if re.match(r"^\d+(?:\+\d+)?'", part) and last_scorer:
-            counts[last_scorer] = counts.get(last_scorer, 0) + 1
+        time_only = re.match(r"^(\d+(?:\+\d+)?'(?:\([^)]+\))?)$", part)
+        if time_only and last_scorer:
+            events.append({'name': last_scorer, 'minute': time_only.group(1)})
             continue
 
-        match = re.match(r"^([A-Za-zÀ-ÖØ-öø-ÿ'`\.\-\s]+?)\s+\d", part)
+        match = re.match(
+            r"^([A-Za-zÀ-ÖØ-öø-ÿ'`\.\-\s]+?)\s+(\d+(?:\+\d+)?'(?:\([^)]+\))?)",
+            part
+        )
         if not match:
             continue
+
         name = _sanitize_name(match.group(1))
+        minute = match.group(2)
         if not name:
             continue
-        counts[name] = counts.get(name, 0) + 1
+
+        events.append({'name': name, 'minute': minute})
         last_scorer = name
+
+    return events
+
+
+def _build_match_label(team1, team2):
+    return f"{team1} vs {team2}"
+
+
+def _build_appearance_record(team1, team2, appearance_time):
+    return {
+        'match': _build_match_label(team1, team2),
+        'time': appearance_time or '时间未知'
+    }
+
+
+def _build_goal_record(team1, team2, minute):
+    return {
+        'match': _build_match_label(team1, team2),
+        'time': minute or '时间未知'
+    }
+
+
+def _extract_scorer_counts(scorer_text):
+    counts = {}
+    for event in _extract_scorer_events(scorer_text):
+        name = event['name']
+        counts[name] = counts.get(name, 0) + 1
 
     return counts
 
@@ -98,7 +172,9 @@ def _get_or_create_tournament(player, year):
             'year': year,
             'appearances': 0,
             'goals': 0,
-            'assists': 0
+            'assists': 0,
+            'appearanceRecords': [],
+            'goalRecords': []
         }
     return player['tournaments'][year]
 
@@ -126,7 +202,6 @@ def parse_worldcup_full_files():
         for match in match_pattern.finditer(text):
             team1 = match.group(1).strip()
             team2 = match.group(2).strip()
-
             match_body = match.group(3)
             scorers_text = ''
             details_block = match_body
@@ -159,57 +234,64 @@ def parse_worldcup_full_files():
             team1_lineup_match = re.search(rf"{re.escape(team1)}:\s*([\s\S]*?)(?=\n{re.escape(team2)}:)", details_block)
             team2_lineup_match = re.search(rf"{re.escape(team2)}:\s*([\s\S]*?)$", details_block)
 
-            team1_players = _extract_participants(team1_lineup_match.group(1)) if team1_lineup_match else set()
-            team2_players = _extract_participants(team2_lineup_match.group(1)) if team2_lineup_match else set()
+            team1_players = _extract_participants(team1_lineup_match.group(1)) if team1_lineup_match else {}
+            team2_players = _extract_participants(team2_lineup_match.group(1)) if team2_lineup_match else {}
 
-            for player_name in team1_players:
+            for player_name, appearance_time in team1_players.items():
                 player = _get_or_create_player(player_map, player_name, team1)
                 tournament = _get_or_create_tournament(player, year)
                 tournament['appearances'] += 1
+                tournament['appearanceRecords'].append(_build_appearance_record(team1, team2, appearance_time))
 
-            for player_name in team2_players:
+            for player_name, appearance_time in team2_players.items():
                 player = _get_or_create_player(player_map, player_name, team2)
                 tournament = _get_or_create_tournament(player, year)
                 tournament['appearances'] += 1
+                tournament['appearanceRecords'].append(_build_appearance_record(team1, team2, appearance_time))
 
             team1_scorers_text = ''
             team2_scorers_text = ''
-            team1_goal_counts = {}
-            team2_goal_counts = {}
+            team1_goal_events = []
+            team2_goal_events = []
 
-            team1_players_lc = {p.lower() for p in team1_players}
-            team2_players_lc = {p.lower() for p in team2_players}
+            team1_players_lc = {p.lower() for p in team1_players.keys()}
+            team2_players_lc = {p.lower() for p in team2_players.keys()}
 
             if ';' in scorers_text:
                 team1_scorers_text, team2_scorers_text = [s.strip() for s in scorers_text.split(';', 1)]
-                team1_goal_counts = _extract_scorer_counts(team1_scorers_text)
-                team2_goal_counts = _extract_scorer_counts(team2_scorers_text)
+                team1_goal_events = _extract_scorer_events(team1_scorers_text)
+                team2_goal_events = _extract_scorer_events(team2_scorers_text)
             else:
                 # Some lines only list scorers for one side without ";".
                 # Resolve team ownership via lineup membership.
-                single_side_goal_counts = _extract_scorer_counts(scorers_text)
-                for scorer, goals in single_side_goal_counts.items():
+                single_side_goal_events = _extract_scorer_events(scorers_text)
+                for event in single_side_goal_events:
+                    scorer = event['name']
                     scorer_lc = scorer.lower()
                     in_team1 = scorer_lc in team1_players_lc
                     in_team2 = scorer_lc in team2_players_lc
 
                     if in_team1 and not in_team2:
-                        team1_goal_counts[scorer] = team1_goal_counts.get(scorer, 0) + goals
+                        team1_goal_events.append(event)
                     elif in_team2 and not in_team1:
-                        team2_goal_counts[scorer] = team2_goal_counts.get(scorer, 0) + goals
+                        team2_goal_events.append(event)
                     else:
                         # Fallback: keep historical behavior if unresolved.
-                        team1_goal_counts[scorer] = team1_goal_counts.get(scorer, 0) + goals
+                        team1_goal_events.append(event)
 
-            for scorer, goals in team1_goal_counts.items():
+            for event in team1_goal_events:
+                scorer = event['name']
                 player = _get_or_create_player(player_map, scorer, team1)
                 tournament = _get_or_create_tournament(player, year)
-                tournament['goals'] += goals
+                tournament['goals'] += 1
+                tournament['goalRecords'].append(_build_goal_record(team1, team2, event.get('minute')))
 
-            for scorer, goals in team2_goal_counts.items():
+            for event in team2_goal_events:
+                scorer = event['name']
                 player = _get_or_create_player(player_map, scorer, team2)
                 tournament = _get_or_create_tournament(player, year)
-                tournament['goals'] += goals
+                tournament['goals'] += 1
+                tournament['goalRecords'].append(_build_goal_record(team1, team2, event.get('minute')))
 
     players = []
     for player in player_map.values():

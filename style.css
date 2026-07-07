@@ -11,6 +11,10 @@ body {
     padding: 20px;
 }
 
+body.modal-open {
+    overflow: hidden;
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -229,6 +233,146 @@ body {
     font-size: 1.2em;
 }
 
+.stat-open-btn {
+    border: none;
+    background: rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.stat-open-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+    background: rgba(255, 255, 255, 0.28);
+}
+
+.stat-open-btn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.records-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+}
+
+.records-modal[hidden] {
+    display: none;
+}
+
+.records-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 18, 43, 0.56);
+    backdrop-filter: blur(4px);
+}
+
+.records-modal__panel {
+    position: relative;
+    width: min(840px, calc(100vw - 36px));
+    max-height: calc(100vh - 60px);
+    overflow: hidden;
+    background: linear-gradient(180deg, #ffffff 0%, #f7f8ff 100%);
+    border-radius: 16px;
+    box-shadow: 0 20px 45px rgba(11, 22, 52, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    animation: modal-pop-in 0.24s ease-out;
+    padding: 22px;
+}
+
+.records-modal__close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: #eef1ff;
+    color: #3246ad;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.records-modal__close:hover {
+    background: #dbe2ff;
+}
+
+.records-modal__title {
+    font-size: 1.45em;
+    margin-bottom: 6px;
+    color: #1b2a77;
+    padding-right: 46px;
+}
+
+.records-modal__meta {
+    color: #59659a;
+    margin-bottom: 14px;
+}
+
+.records-list {
+    overflow-y: auto;
+    max-height: calc(100vh - 210px);
+    display: grid;
+    gap: 10px;
+    padding-right: 2px;
+}
+
+.record-item {
+    background: #fff;
+    border: 1px solid #e4e8fb;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.record-item__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.record-item__index {
+    font-size: 0.85em;
+    color: #4154bb;
+    background: #edf1ff;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.record-item__year {
+    font-size: 0.85em;
+    color: #6f78a6;
+}
+
+.record-item__line {
+    color: #2e3350;
+    margin: 4px 0;
+}
+
+.records-empty {
+    text-align: center;
+    color: #7f88b0;
+    padding: 28px 16px;
+}
+
+@keyframes modal-pop-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 .no-records {
     text-align: center;
     color: #999;
@@ -251,5 +395,18 @@ body {
 
     .tournament-stats {
         grid-template-columns: 1fr;
+    }
+
+    .records-modal__panel {
+        padding: 16px;
+        border-radius: 14px;
+    }
+
+    .records-modal__title {
+        font-size: 1.2em;
+    }
+
+    .records-list {
+        max-height: calc(100vh - 190px);
     }
 }
