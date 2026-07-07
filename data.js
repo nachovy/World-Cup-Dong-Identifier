@@ -1,6 +1,18 @@
 // World Cup Players Database - loaded from real API
 let worldCupDatabase = [];
 
+// Supplemental squad-only entries for players who made the final roster
+// but did not appear in matches, so they are still searchable.
+const supplementalSquadPlayers = [
+    {
+        name: 'Geronimo RULLI',
+        nationality: 'Argentina',
+        tournaments: [
+            { year: 2022, appearances: 0, goals: 0, assists: 0 }
+        ]
+    }
+];
+
 function isLikelyCorruptedPlayerName(name) {
     if (!name || typeof name !== 'string') {
         return true;
@@ -15,6 +27,39 @@ function isLikelyCorruptedPlayerName(name) {
         return true;
     }
     return /\(\s*\d+(?:\+\d+)?'|\d+(?:\+\d+)?'\s+[A-Za-z]/.test(name);
+}
+
+function playerKey(player) {
+    const name = (player.name || '').trim().toLowerCase();
+    const nationality = (player.nationality || '').trim().toLowerCase();
+    return `${name}::${nationality}`;
+}
+
+function mergePlayers(basePlayers, extraPlayers) {
+    const map = new Map(basePlayers.map(player => [playerKey(player), player]));
+
+    extraPlayers.forEach(extra => {
+        const key = playerKey(extra);
+        const existing = map.get(key);
+
+        if (!existing) {
+            map.set(key, extra);
+            return;
+        }
+
+        // Merge tournament rows by year, preserving existing stats when present.
+        const byYear = new Map((existing.tournaments || []).map(t => [Number(t.year), t]));
+        (extra.tournaments || []).forEach(t => {
+            const year = Number(t.year);
+            if (!byYear.has(year)) {
+                byYear.set(year, t);
+            }
+        });
+
+        existing.tournaments = Array.from(byYear.values()).sort((a, b) => Number(a.year) - Number(b.year));
+    });
+
+    return Array.from(map.values());
 }
 
 // Fetch World Cup data from API
@@ -60,14 +105,15 @@ async function fetchFromRealAPI() {
             throw new Error('Invalid API response format: missing players array');
         }
 
-        // Exclude 2026 tournaments and malformed names from current statistics.
-        worldCupDatabase = data.players
+        // Exclude malformed names and merge squad-only players so they remain searchable.
+        const sanitizedPlayers = data.players
             .filter(player => !isLikelyCorruptedPlayerName(player.name))
             .map(player => ({
                 ...player,
                 tournaments: (player.tournaments || []).filter(t => Number(t.year) !== 2026)
-            }))
-            .filter(player => player.tournaments.length > 0);
+            }));
+
+        worldCupDatabase = mergePlayers(sanitizedPlayers, supplementalSquadPlayers);
         console.log(`✓ Loaded ${worldCupDatabase.length} players from World Cup history`);
         
     } catch (error) {
