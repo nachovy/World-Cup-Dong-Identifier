@@ -236,7 +236,8 @@ function parseWorldCupData(fullFileTexts, squadFileTexts) {
     const matchPattern = /\n\s*([A-Za-zÀ-ÖØ-öø-ÿ'.\-\s]+?)\sv\s([A-Za-zÀ-ÖØ-öø-ÿ'.\-\s]+?)\s+\d+-\d+(?:[ \t]+[^\n]+)?\n([\s\S]*?)\nRefs:/gm;
 
     fullFileTexts.forEach(({ year, text }) => {
-        const matches = text.matchAll(matchPattern);
+        const normalizedText = text.replace(/\r\n?/g, '\n');
+        const matches = normalizedText.matchAll(matchPattern);
 
         for (const match of matches) {
             const team1 = match[1].trim();
@@ -362,7 +363,8 @@ function parseWorldCupData(fullFileTexts, squadFileTexts) {
     });
 
     squadFileTexts.forEach(({ year, text }) => {
-        const squadsByTeam = extractSquadPlayersByTeam(text);
+        const normalizedText = text.replace(/\r\n?/g, '\n');
+        const squadsByTeam = extractSquadPlayersByTeam(normalizedText);
         const knownTeams = teamsByYear.get(year) || new Set();
 
         squadsByTeam.forEach((squadPlayers, rawTeam) => {
