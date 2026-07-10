@@ -110,7 +110,7 @@ async function fetchFromRealAPI() {
             .filter(player => !isLikelyCorruptedPlayerName(player.name))
             .map(player => ({
                 ...player,
-                tournaments: (player.tournaments || []).filter(t => Number(t.year) !== 2026)
+                tournaments: (player.tournaments || [])
             }));
 
         worldCupDatabase = mergePlayers(sanitizedPlayers, supplementalSquadPlayers);

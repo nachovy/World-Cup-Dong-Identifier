@@ -239,8 +239,6 @@ def parse_worldcup_full_files():
         if not year_match:
             continue
         year = int(year_match.group(1))
-        if year == 2026:
-            continue
 
         text = file_path.read_text(encoding='utf-8', errors='ignore')
 
@@ -353,8 +351,6 @@ def parse_worldcup_full_files():
             continue
 
         year = int(year_match.group(1))
-        if year == 2026:
-            continue
 
         squads_text = file_path.read_text(encoding='utf-8', errors='ignore')
         squads_by_team = _extract_squad_players_by_team(squads_text)
