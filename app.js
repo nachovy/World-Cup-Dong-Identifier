@@ -35,7 +35,7 @@ async function init() {
         await loadWorldCupData();
         displayAllPlayers(worldCupDatabase);
     } catch (error) {
-        playersList.innerHTML = '<p class="no-records">数据加载失败，请先启动本地解析服务: python3 cors_proxy.py</p>';
+        playersList.innerHTML = '<p class="no-records">数据加载失败，请检查网络后重试（数据源: openfootball/worldcup）</p>';
         clearPlayerDetails();
         console.error('Initialization failed:', error);
     }
