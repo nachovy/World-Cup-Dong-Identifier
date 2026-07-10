@@ -1,4 +1,4 @@
-# 看看谁是东 - World Cup Player Database
+# World Cup Player Stats
 
 ## Running Locally
 

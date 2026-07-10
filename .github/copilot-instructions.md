@@ -3,7 +3,7 @@
 This is a web application for searching and analyzing World Cup player statistics.
 
 ## Project Overview
-- **Title**: 看看谁是东 (Check Who's Dong)
+- **Title**: World Cup Player Stats
 - **Technology**: HTML5, CSS3, JavaScript
 - **Features**: 
   - Player search by name
